@@ -1,5 +1,8 @@
 # THREE.js MIDI Visualizer
 
+>[!WARNING]
+> This is a pre-alpha, work-in-progress project. Not intended for use.
+
 A lightweight, work-in-progress MIDI Visualizer. Currently in the barebones pre-alpha state, but somewhat functional.
 End goal is a fully-fleged user application for content creation with 3D Particles, simple fluid simulation for smoke, keyframeable properties, real-time recording, MIDI file reading, etc. etc. All the cool stuff.
 
