@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import * as Functions from './functions.js';
-import * as Shaders from './shaders.js';
+//import * as Shaders from './shaders.js';
 import { PostProcessing, WebGPURenderer } from 'three/webgpu';
 import WebGL from 'three/addons/capabilities/WebGL.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+//import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import Stats from 'three/addons/libs/stats.module.js';
 // webgl postprocessing
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
