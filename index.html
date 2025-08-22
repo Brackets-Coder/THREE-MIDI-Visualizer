@@ -63,7 +63,8 @@
     }
     
     .btn-dark {
-      border-color: #0f0f0f;
+      background-color: rgba(33, 37, 41, 0.5);
+      backdrop-filter: blur(50px);
     }
   </style>
 </head>
@@ -74,13 +75,11 @@
   <div class="ui-container text-white d-flex justify-content-center align-items-center" style="min-height: 100vh;" data-bs-theme="dark">
     <div id="menu" class="text-center" style="width: 90%; max-width: 400px;">
       <h1 class="p-3" style="pointer-events: none; user-select: none;">Three.js MIDI Visualizer</h1>
-      <div class="card text-center">
-        <ul class="navbar-nav">
-          <li class="p-3"><button id="start" class="btn btn-lg btn-dark w-100">New Project</button></li>
-          <li class="p-3 pt-0"><button class="btn btn-lg btn-dark w-100">Open Project</button></li>
-          <li class="p-3 pt-0"><button class="btn btn-lg btn-dark w-100">Delete Project</button></li>
-        </ul>
-      </div>
+      <ul class="navbar-nav">
+        <li class="p-3"><button id="start" class="btn btn-lg btn-dark w-100">New Project</button></li>
+        <li class="p-3 pt-0"><button class="btn btn-lg btn-dark w-100">Open Project</button></li>
+        <li class="p-3 pt-0"><button class="btn btn-lg btn-dark w-100">Delete Project</button></li>
+      </ul>
     </div>
   </div>
 </body>
