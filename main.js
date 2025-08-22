@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as Functions from './functions.js';
-//import * as Shaders from './shaders.js';
+import * as Shaders from './shaders.js';
+import * as UI from './ui.js';
 import { PostProcessing, WebGPURenderer } from 'three/webgpu';
 import WebGL from 'three/addons/capabilities/WebGL.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -18,57 +19,34 @@ import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 
 //* =-=-=-=-=-=| MIDI SETUP |=-=-=-=-=-=
 
-if (!navigator.requestMIDIAccess) {
+window.addEventListener("DOMContentLoaded", () => {
+  UI.openFade();
+});
 
-  const h = document.createElement("h1");
-  h.innerText = "MIDI Access Denied";
-  const p = document.createElement("p");
-  p.innerText = "Your browser does not support the Web MIDI API. Please try a different browser or check your browser settings to enable MIDI access.";
-  document.getElementById("menu").appendChild(h);
-  document.getElementById("menu").appendChild(p);
+document.getElementById("start").addEventListener("click", () => {
+  UI.closeMenu();
 
-  const button = document.createElement("button");
-  button.innerText = "Continue Anyway";
-  button.setAttribute("class", "btn btn-lg btn-primary");
-  button.setAttribute("id", "start");
-  document.getElementById("menu").appendChild(button);
+  navigator.requestMIDIAccess?.().then((midiAccess) => {
+    const inputs = midiAccess.inputs.values();
+    for (let input of inputs) {
+      input.onmidimessage = (message) => {
+        const [status, note, velocity] = message.data;
 
-} else {
+        if (status === 144 && velocity > 0) { // Note On
+          const event = new CustomEvent("noteon", { detail: { note, velocity } });
+          document.dispatchEvent(event);
 
-  const h = document.createElement("h1");
-  h.innerText = "Hello";
-  document.getElementById("menu").appendChild(h);
+        } else if (status === 128 || (status === 144 && velocity === 0)) { // Note Off
+          const event = new CustomEvent("noteoff", { detail: { note } });
+          document.dispatchEvent(event);
+        }
 
-  const button = document.createElement("button");
-  button.innerText = "Start";
-  button.setAttribute("class", "btn btn-lg btn-primary");
-  button.setAttribute("id", "start");
-  document.getElementById("menu").appendChild(button);
-
-  document.getElementById("start").addEventListener("click", () => {
-    navigator.requestMIDIAccess().then((midiAccess) => {
-      const inputs = midiAccess.inputs.values();
-      for (let input of inputs) {
-        console.log("hello")
-        input.onmidimessage = (message) => {
-          const [status, note, velocity] = message.data;
-
-          if (status === 144 && velocity > 0) { // Note On
-            const event = new CustomEvent("noteon", { detail: { note, velocity } });
-            document.dispatchEvent(event);
-
-          } else if (status === 128 || (status === 144 && velocity === 0)) { // Note Off
-            const event = new CustomEvent("noteoff", { detail: { note } });
-            document.dispatchEvent(event);
-          }
-
-        };
-      }
-    }).catch((err) => {
-      console.error("Failed to get MIDI access:", err);
-    });
+      };
+    }
+  }).catch((err) => {
+    console.error("Failed to get MIDI access:", err);
   });
-}
+});
 
 //* =-=-=-=-=-=| RENDER SETUP |=-=-=-=-=-=
  
@@ -99,7 +77,6 @@ if ( WebGL.isWebGL2Available() ) {
 
   // * start button
   document.getElementById("start").addEventListener("click", () => {
-    document.getElementsByClassName("ui-container")[0].style.display = "none";
     controls.enablePan = true;
     controls.enableZoom = true;
     controls.enableRotate = true;
