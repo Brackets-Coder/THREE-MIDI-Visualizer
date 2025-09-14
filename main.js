@@ -2,50 +2,77 @@ import * as THREE from 'three';
 import * as Functions from './functions.js';
 import * as Shaders from './shaders.js';
 import * as UI from './ui.js';
+import * as Fluid from './fluid.js';
 import { PostProcessing, WebGPURenderer } from 'three/webgpu';
 import WebGL from 'three/addons/capabilities/WebGL.js';
+import WebGPU from 'three/examples/jsm/capabilities/WebGPU.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 //import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import Stats from 'three/addons/libs/stats.module.js';
 // webgl postprocessing
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 // webgpu postprocessing
-import { pass } from 'three/tsl'
+import { pass } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 
 "use strict";
 
+const projectCount = 12; // TODO: Example project count, replace with actual logic to get project count
+
+if (projectCount === 0) {
+  const projectList = document.getElementById("project-list");
+  projectList.style.textAlign = "center";
+  projectList.style.color = "gray";
+  projectList.style.padding = "5rem";
+  projectList.innerHTML = `<i>No projects found. Please create a new project.</i>`;
+} else {
+  for (let i = 0; i < projectCount; i++) {
+    UI.addProject(`Project ${i + 1}`)
+  }
+}
+
+export const globalColor = "rgb( 0, 128, 128 )";
+
+//* =-=-=-=-=| DATA SETUP |=-=-=-=-=-=
+
+const request = indexedDB.open("projects", 1);
+
+request.onupgradeneeded = (event) => {
+  const db = event.target.result;
+  db.createObjectStore("MyStore", { keyPath: "id", autoIncrement: true });
+};
+
+request.onsuccess = (event) => {
+  const db = event.target.result;
+  console.log("DB opened", db);
+};
+
+request.onerror = (event) => {
+  console.error("DB error", event.target.error);
+};
+
 //* =-=-=-=-=-=| MIDI SETUP |=-=-=-=-=-=
 
-window.addEventListener("DOMContentLoaded", () => {
-  UI.openFade();
-});
+navigator.requestMIDIAccess?.().then((midiAccess) => {
+  const inputs = midiAccess.inputs.values();
+  for (let input of inputs) {
+    input.onmidimessage = (message) => {
+      const [status, note, velocity] = message.data;
 
-document.getElementById("start").addEventListener("click", () => {
-  UI.closeMenu();
+      if (status === 144 && velocity > 0) { // Note On}
+        const event = new CustomEvent("noteon", { detail: { note, velocity } });
+        document.dispatchEvent(event);
+      } else if (status === 128 || (status === 144 && velocity === 0)) { // Note Off
+        const event = new CustomEvent("noteoff", { detail: { note } });
+        document.dispatchEvent(event);
+      }
 
-  navigator.requestMIDIAccess?.().then((midiAccess) => {
-    const inputs = midiAccess.inputs.values();
-    for (let input of inputs) {
-      input.onmidimessage = (message) => {
-        const [status, note, velocity] = message.data;
-
-        if (status === 144 && velocity > 0) { // Note On
-          const event = new CustomEvent("noteon", { detail: { note, velocity } });
-          document.dispatchEvent(event);
-
-        } else if (status === 128 || (status === 144 && velocity === 0)) { // Note Off
-          const event = new CustomEvent("noteoff", { detail: { note } });
-          document.dispatchEvent(event);
-        }
-
-      };
-    }
-  }).catch((err) => {
-    console.error("Failed to get MIDI access:", err);
-  });
+    };
+  }
+}).catch((err) => {
+  console.error("Failed to get MIDI access:", err);
 });
 
 //* =-=-=-=-=-=| RENDER SETUP |=-=-=-=-=-=
@@ -55,7 +82,7 @@ if ( WebGL.isWebGL2Available() ) {
   const canvas = document.querySelector('#c');
 
   let renderer;
-  if (navigator.gpu) {
+  if (WebGPU.isWebGPUAvailable()) {
     renderer = new WebGPURenderer({ canvas, antialias: true });
   } else {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -66,25 +93,20 @@ if ( WebGL.isWebGL2Available() ) {
   stats.dom.style.zIndex = 1;
 
   //* =-=-=-=-=-=| SCENE SETUP |=-=-=-=-=-=
-  
+
   const camera = new THREE.PerspectiveCamera( 75, 2, 0.001, 999 );
-  camera.position.z = 0.6;
   const controls = new OrbitControls( camera, renderer.domElement );
+  camera.position.z = 0.6;
   controls.enablePan = false;
   controls.enableZoom = false;
   controls.enableRotate = false;
   controls.update();
 
-  // * start button
-  document.getElementById("start").addEventListener("click", () => {
-    controls.enablePan = true;
-    controls.enableZoom = true;
-    controls.enableRotate = true;
-  });
-  
   const scene = new THREE.Scene();
   const AmbientLight = new THREE.AmbientLight( 0xefefef ); // soft white light
   scene.add( AmbientLight );
+
+  scene.background = new THREE.Color(0x000000); // solid color
 
   //* =-=-=-=-=-=| POSTPROCESS SETUP |=-=-=-=-=-=
 
@@ -130,13 +152,51 @@ if ( WebGL.isWebGL2Available() ) {
     return needResize;
   }
 
+  //* =-=-=-=-=-=| UI SETUP |=-=-=-=-=-=
+
+  window.addEventListener("DOMContentLoaded", () => {
+    UI.openFade();
+  });
+
+  document.getElementById("new-project").addEventListener("click", () => {
+    UI.newProject();
+  });
+
+  document.getElementById("new-project").addEventListener("click", () => {
+    controls.enablePan = true;
+    controls.enableZoom = true;
+    controls.enableRotate = true;
+  });
+
   //* =-=-=-=-=-=| INPUT SETUP |=-=-=-=-=-=
 
   window.addEventListener('keydown', (e) => {
     if (e.key === "0") {
-      camera.position.set(0, 0, 5); // Reset camera position
+      controls.reset();
+      camera.position.set(0, 0, 0.6); // Reset camera position
       camera.lookAt(0, 0, 0); // Ensure the camera is looking at the origin
-      controls.reset(); // Reset OrbitControls to default state
+      camera.rotation.set(0, 0, 0);
+      controls.update(); // Reset OrbitControls to default state
+    }
+  });
+  
+  window.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (UI.inProject) {
+        const el = document.getElementById('save-project');
+        if (!el.classList.contains('show')) {
+          new bootstrap.Modal(el).show();
+        }
+      }
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === " ") {
+      if (UI.inProject) {
+        Fluid.addEmitter(Fluid.canvas.width / 2, Fluid.canvas.height /2, 20, 0.2, {x: 0, y: 500});
+      }
     }
   });
 
@@ -150,9 +210,18 @@ if ( WebGL.isWebGL2Available() ) {
 
   // generate the laser
   const geometry = new THREE.BoxGeometry((0.025 * 52) - 0.001, 0.025 / 2, 0.024, 100, 1, 1);
-  const laser = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x000000, emissive: "rgb(0, 128, 128)", emissiveIntensity: 2 }));
+  const laser = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x000000, emissive: globalColor, emissiveIntensity: 2 }));
   laser.position.set(0, (0.15 / 2), 0);
   scene.add(laser);
+
+  const fluidTexture = new THREE.CanvasTexture(document.getElementById("fluid-canvas"));
+  const planeGeometry = new THREE.PlaneGeometry(1 * Fluid.fluid._aspectRatio, 1); // adjust size to fit keyboard
+  const planeMaterial = new THREE.MeshBasicMaterial({ map: fluidTexture, transparent: true, side: THREE.DoubleSide, alphaMap: fluidTexture, });
+  const fluidPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+
+  // position it slightly above the keyboard
+  fluidPlane.position.set(0, 0.1, 0); 
+  scene.add(fluidPlane);
 
   //* =-=-=-=-=-=| GAME LOOP |=-=-=-=-=-=
 
@@ -181,6 +250,7 @@ if ( WebGL.isWebGL2Available() ) {
   });
 
   function tick(time, deltaTime) {
+    fluidTexture.needsUpdate = true;
     activeNotes.forEach(n => {
       n.scale.y += deltaTime / 5;
       n.position.y = (n.scale.y / 2) + (0.15 / 3);

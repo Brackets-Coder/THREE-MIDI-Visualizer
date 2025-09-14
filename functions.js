@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { globalColor } from './main.js';
 
 let WhiteKeyWidth  = 0.025;
 let WhiteKeyDepth  = 0.15;
@@ -13,7 +14,10 @@ export function isBlackKey(MIDINote) {
 }
 
 export function noteTransform(MIDINote) {
-
+  // TODO: Adjust the black key positioning to be more accurate: 
+  // TODO: make the leftmost side of F#s and C#s align with the center of their adjacent white keys
+  // TODO: make the rightmost side of Bb's and Eb's align with the center of their adjacent white keys
+  // TODO: A flats should be centered between g and a
   const TotalWhiteKeys = 52;
   const TotalWhiteKeyWidth = WhiteKeyWidth * TotalWhiteKeys;
   const StartX = (-TotalWhiteKeyWidth / 2) + (WhiteKeyWidth / 2);
@@ -67,7 +71,7 @@ export function generatePianoKeyboard(scene) {
     const color = isBlackKey ? 0x000000 : 0xffffff;
 
     const geometry = new THREE.BoxGeometry(scale.x, scale.y, scale.z);
-    const material = new THREE.MeshStandardMaterial({ color, emissive: "rgb(0, 128, 128)", emissiveIntensity: 0 });
+    const material = new THREE.MeshStandardMaterial({ color, emissive: globalColor, emissiveIntensity: 0 });
     const key = new THREE.Mesh(geometry, material);
 
     key.position.copy(position);
@@ -107,7 +111,7 @@ export function lightKeyOff(midiNote) {
 export function createNote(MIDI) {
   const { position, scale } = noteTransform(MIDI);
   const geometry = new THREE.PlaneGeometry(1, 1, 1);
-  const material = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: "rgb(0, 128, 128)", side: THREE.DoubleSide, transparent: true, emissiveIntensity: 2 });
+  const material = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: globalColor, side: THREE.DoubleSide, transparent: true, emissiveIntensity: 2 });
   const note = new THREE.Mesh(geometry, material);
   note.position.x = position.x;
   note.scale.x = scale.x;
@@ -138,3 +142,7 @@ export function setNoteRoundness(roundness, note) {
 
   note.material.needsUpdate = true;
 }
+
+
+
+export { WhiteKeyDepth, WhiteKeyWidth, WhiteKeyHeight, BlackKeyDepth, BlackKeyWidth, BlackKeyHeight };
