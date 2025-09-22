@@ -5,7 +5,7 @@ import * as UI from './ui.js';
 import * as Fluid from './fluid.js';
 import { PostProcessing, WebGPURenderer } from 'three/webgpu';
 import WebGL from 'three/addons/capabilities/WebGL.js';
-import WebGPU from 'three/examples/jsm/capabilities/WebGPU.js';
+//import WebGPU from 'three/addons/capabilities/WebGPU.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 //import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import Stats from 'three/addons/libs/stats.module.js';
@@ -19,7 +19,7 @@ import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 
 "use strict";
 
-const projectCount = 12; // TODO: Example project count, replace with actual logic to get project count
+const projectCount = 0; // TODO: Example project count, replace with actual logic to get project count
 
 if (projectCount === 0) {
   const projectList = document.getElementById("project-list");
@@ -82,7 +82,7 @@ if ( WebGL.isWebGL2Available() ) {
   const canvas = document.querySelector('#c');
 
   let renderer;
-  if (WebGPU.isWebGPUAvailable()) {
+  if (navigator.gpu) {
     renderer = new WebGPURenderer({ canvas, antialias: true });
   } else {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
